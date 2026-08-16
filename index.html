@@ -724,7 +724,7 @@
                 for await (const chunk of replyStream) {
                     const delta = chunk.choices[0]?.delta?.content || "";
                     fullReply += delta;
-                    assistantMsgDiv.innerText = fullReply;
+                    assistantMsgDiv.innerText = stripThinkingContent(fullReply);
                     chatBox.scrollTop = chatBox.scrollHeight;
 
                     if (chunk.usage) {
@@ -732,6 +732,8 @@
                     }
                 }
 
+                fullReply = stripThinkingContent(fullReply);
+                assistantMsgDiv.innerText = fullReply;
                 conversationHistory.push({ role: "assistant", content: fullReply });
 
                 if (currentUsage && currentUsage.total_tokens) {
@@ -748,6 +750,17 @@
                 userInput.focus();
             }
         };
+
+        function stripThinkingContent(text) {
+            let cleaned = text;
+            // Remove complete blocks: <think>...</think>
+            cleaned = cleaned.replace(/<think>[\s\S]*?<\/redacted_thinking>/gi, "");
+            // Remove blocks delimited by the same tag twice: <think>...<think>
+            cleaned = cleaned.replace(/<think>[\s\S]*?<think>/gi, "");
+            // While streaming, hide any incomplete thinking block at the end
+            cleaned = cleaned.replace(/<think>[\s\S]*$/gi, "");
+            return cleaned.trim();
+        }
 
         function appendMessage(text, sender) {
             const msgDiv = document.createElement("div");
