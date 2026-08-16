@@ -23,7 +23,14 @@
         .sub-title {
             font-size: 13px;
             color: #666;
+            margin-bottom: 10px;
+        }
+        #upgrade-status {
+            font-size: 12px;
+            color: #ff6600;
             margin-bottom: 15px;
+            font-weight: bold;
+            display: none;
         }
         #token-stats {
             font-size: 12px;
@@ -153,7 +160,7 @@
     <div id="loading-overlay">
         <div class="spinner"></div>
         <div id="loading-text">Preparing Nectar AI Free</div>
-        <div id="loading-subtext">Loading backend configuration...</div>
+        <div id="loading-subtext">Loading fast startup model...</div>
         
         <div class="progress-container">
             <div id="progress-bar"></div>
@@ -166,6 +173,9 @@
         <div id="token-stats">Context: 0 / 32,768 tokens</div>
     </div>
     <div class="sub-title">Super-fast client-side intelligence running right inside your browser via WebGPU.</div>
+    
+    <!-- New upgrade status text -->
+    <div id="upgrade-status"></div>
 
     <div id="chat-box"></div>
 
@@ -180,13 +190,14 @@
 
         let engine = null;
         let backendConfig = null;
-        const maxWindow = 32768; // Qwen2 token context limit
+        const maxWindow = 32768;
 
         const loadingOverlay = document.getElementById("loading-overlay");
         const loadingSubtext = document.getElementById("loading-subtext");
         const progressBar = document.getElementById("progress-bar");
         const progressStats = document.getElementById("progress-stats");
         
+        const upgradeStatus = document.getElementById("upgrade-status");
         const tokenStats = document.getElementById("token-stats");
         const chatBox = document.getElementById("chat-box");
         const userInput = document.getElementById("user-input");
@@ -197,20 +208,17 @@
 
         async function initApp() {
             try {
-                // 1. Fetch backend configuration json file
+                // 1. Fetch backend configuration
                 const response = await fetch('./prompt-config.json');
                 if (!response.ok) throw new Error("Failed to load prompt-config.json");
                 backendConfig = await response.json();
 
-                // Apply branding from backend config
                 if (backendConfig.app_name) {
                     appTitle.innerText = backendConfig.app_name;
                     document.title = backendConfig.app_name;
                 }
 
-                loadingSubtext.innerText = `Initializing model (${backendConfig.model_selection})...`;
-
-                // 2. Initialize WebLLM Engine and update the visual progress bar
+                // 2. Load the FAST model first
                 const initProgressCallback = (report) => {
                     loadingSubtext.innerText = report.text;
                     if (report.progress !== undefined) {
@@ -225,19 +233,59 @@
                     { initProgressCallback: initProgressCallback }
                 );
 
-                // Hide the loading overlay smoothly
+                // Hide loading overlay
                 loadingOverlay.style.opacity = "0";
                 setTimeout(() => {
                     loadingOverlay.style.display = "none";
                 }, 400);
 
+                // Enable chat
                 userInput.disabled = false;
                 sendBtn.disabled = false;
 
+                // 3. Start background download of the SMARTER model
+                loadBiggerModel();
+
             } catch (err) {
                 console.error(err);
-                loadingSubtext.innerText = "Initialization error. Ensure prompt-config.json is present and server is running.";
+                loadingSubtext.innerText = "Initialization error.";
                 progressStats.innerText = "Error";
+            }
+        }
+
+        // New function to load the bigger model silently
+        async function loadBiggerModel() {
+            upgradeStatus.style.display = "block";
+            
+            const upgradeProgressCallback = (report) => {
+                // Clean up the text so it's simple and easy to read
+                const shortText = report.text.split("] ")[1] || report.text;
+                upgradeStatus.innerText = "Downloading smarter AI in background: " + shortText;
+            };
+
+            try {
+                // You can change this to a larger Qwen model when available
+                const biggerModelName = "Qwen2-1.5B-Instruct-q4f16_1-MLC"; 
+                
+                const biggerEngine = await webllm.CreateMLCEngine(
+                    biggerModelName, 
+                    { initProgressCallback: upgradeProgressCallback }
+                );
+
+                // Swap the engine to the smarter one seamlessly
+                engine = biggerEngine;
+                
+                upgradeStatus.style.color = "green";
+                upgradeStatus.innerText = "✨ Upgrade complete! You are now chatting with the smarter AI.";
+                
+                // Hide the message after 5 seconds
+                setTimeout(() => {
+                    upgradeStatus.style.display = "none";
+                }, 5000);
+
+            } catch (err) {
+                console.error("Background upgrade failed:", err);
+                upgradeStatus.style.display = "none";
             }
         }
 
@@ -251,11 +299,9 @@
             userInput.disabled = true;
             sendBtn.disabled = true;
 
-            // Append user text to local history
             conversationHistory.push({ role: "user", content: text });
             appendMessage(text, "user");
 
-            // Build backend payload completely behind the scenes
             const messages = [
                 { role: "system", content: backendConfig.system_prompt },
                 ...conversationHistory
@@ -286,10 +332,8 @@
                     }
                 }
 
-                // Push assistant answer into history
                 conversationHistory.push({ role: "assistant", content: fullReply });
 
-                // Update context metrics display cleanly
                 if (currentUsage && currentUsage.total_tokens) {
                     const used = currentUsage.total_tokens;
                     const pct = ((used / maxWindow) * 100).toFixed(1);
