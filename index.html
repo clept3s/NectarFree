@@ -452,14 +452,17 @@
             fast: { id: "Qwen3-1.7B-q4f16_1-MLC", label: "Fast (Qwen3-1.7B)" },
             smart: { id: "Qwen3-4B-q4f16_1-MLC", label: "Smart (Qwen3-4B)" }
         };
+        const MODEL_ORDER = ["lite", "fast", "smart"];
 
         const STORAGE_KEYS = { theme: "forge-kernel-theme", model: "forge-kernel-model" };
         const maxWindow = 4096;
 
         let engine = null;
         let backendConfig = null;
-        let currentModelKey = localStorage.getItem(STORAGE_KEYS.model) || "fast";
+        let targetModelKey = localStorage.getItem(STORAGE_KEYS.model) || "fast";
+        let currentModelKey = "lite";
         let isSwitchingModel = false;
+        let backgroundUpgradeAbort = false;
 
         const loadingOverlay = document.getElementById("loading-overlay");
         const loadingText = document.getElementById("loading-text");
@@ -486,12 +489,22 @@
             });
         }
 
+        function modelRank(modelKey) {
+            return MODEL_ORDER.indexOf(modelKey);
+        }
+
         function applyModelSelectionUI(modelKey) {
             document.querySelectorAll("#model-options .settings-option").forEach(el => {
                 const active = el.dataset.modelValue === modelKey;
                 el.classList.toggle("active", active);
                 el.querySelector("input").checked = active;
             });
+        }
+
+        function saveModelPreference(modelKey) {
+            targetModelKey = modelKey;
+            localStorage.setItem(STORAGE_KEYS.model, modelKey);
+            applyModelSelectionUI(modelKey);
         }
 
         function showLoadingOverlay(message) {
@@ -521,7 +534,16 @@
             }
         }
 
-        async function loadEngine(modelKey, showOverlay = true) {
+        async function createEngine(modelKey, onProgress) {
+            const model = MODELS[modelKey];
+            return webllm.CreateMLCEngine(model.id, {
+                initProgressCallback: (report) => {
+                    if (onProgress) onProgress(report);
+                }
+            });
+        }
+
+        async function loadEngine(modelKey, { showOverlay = true, savePreference = true } = {}) {
             const model = MODELS[modelKey];
             if (!model) return;
 
@@ -531,33 +553,74 @@
                 sendBtn.disabled = true;
             }
 
-            const initProgressCallback = (report) => {
+            engine = await createEngine(modelKey, (report) => {
+                if (!showOverlay) return;
                 loadingSubtext.innerText = report.text;
                 if (report.progress !== undefined) {
                     const percent = Math.round(report.progress * 100);
                     progressBar.style.width = percent + "%";
                     progressStats.innerText = percent + "%";
                 }
-            };
+            });
 
-            engine = await webllm.CreateMLCEngine(model.id, { initProgressCallback });
             currentModelKey = modelKey;
-            localStorage.setItem(STORAGE_KEYS.model, modelKey);
-            applyModelSelectionUI(modelKey);
+            if (savePreference) saveModelPreference(modelKey);
 
             if (showOverlay) hideLoadingOverlay();
             userInput.disabled = false;
             sendBtn.disabled = false;
         }
 
-        async function switchModel(modelKey) {
-            if (modelKey === currentModelKey || isSwitchingModel) return;
-            isSwitchingModel = true;
-            settingsPanel.classList.remove("open");
+        async function backgroundUpgradeTo(modelKey) {
+            if (modelRank(modelKey) <= modelRank(currentModelKey)) return;
+
+            backgroundUpgradeAbort = false;
+            modelStatus.style.display = "block";
+            modelStatus.style.color = "var(--accent)";
+
+            const upgradeProgressCallback = (report) => {
+                if (backgroundUpgradeAbort) return;
+                const shortText = report.text.split("] ")[1] || report.text;
+                modelStatus.innerText = `Downloading ${MODELS[modelKey].label} in background: ${shortText}`;
+            };
 
             try {
+                const upgradedEngine = await createEngine(modelKey, upgradeProgressCallback);
+                if (backgroundUpgradeAbort) return;
+
+                engine = upgradedEngine;
+                currentModelKey = modelKey;
+
+                modelStatus.style.color = "var(--accent-light)";
+                modelStatus.innerText = `Upgrade complete — now using ${MODELS[modelKey].label}.`;
+                setTimeout(() => {
+                    modelStatus.style.display = "none";
+                }, 5000);
+            } catch (err) {
+                console.error("Background upgrade failed:", err);
+                if (!backgroundUpgradeAbort) {
+                    modelStatus.innerText = `Background upgrade failed — still on ${MODELS[currentModelKey].label}.`;
+                    setTimeout(() => {
+                        modelStatus.style.display = "none";
+                    }, 5000);
+                }
+            }
+        }
+
+        async function switchModel(modelKey) {
+            if (modelKey === targetModelKey && modelKey === currentModelKey) return;
+            if (isSwitchingModel) return;
+
+            isSwitchingModel = true;
+            backgroundUpgradeAbort = true;
+            settingsPanel.classList.remove("open");
+            saveModelPreference(modelKey);
+
+            try {
+                if (modelKey === currentModelKey) return;
+
                 showModelStatus(`Switching to ${MODELS[modelKey].label}...`, true);
-                await loadEngine(modelKey, true);
+                await loadEngine(modelKey, { showOverlay: true, savePreference: false });
                 conversationHistory = [];
                 chatBox.innerHTML = "";
                 tokenStats.innerText = `Context: 0 / ${maxWindow.toLocaleString()} tokens`;
@@ -574,7 +637,7 @@
         function initSettings() {
             const savedTheme = localStorage.getItem(STORAGE_KEYS.theme) || "dark";
             applyTheme(savedTheme);
-            applyModelSelectionUI(currentModelKey);
+            applyModelSelectionUI(targetModelKey);
 
             settingsToggle.addEventListener("click", (e) => {
                 e.stopPropagation();
@@ -607,7 +670,14 @@
                 backendConfig = await response.json();
 
                 initSettings();
-                await loadEngine(currentModelKey, true);
+
+                // Always boot with the smallest model for a fast first load
+                await loadEngine("lite", { showOverlay: true, savePreference: false });
+
+                // Then silently upgrade to the user's preferred smarter model
+                if (modelRank(targetModelKey) > modelRank("lite")) {
+                    backgroundUpgradeTo(targetModelKey);
+                }
             } catch (err) {
                 console.error(err);
                 loadingSubtext.innerText = "Initialization error.";
