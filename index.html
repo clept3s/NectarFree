@@ -25,13 +25,6 @@
             color: #666;
             margin-bottom: 15px;
         }
-        #loading-status {
-            font-style: italic;
-            color: #555;
-            font-size: 13px;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
         #token-stats {
             font-size: 12px;
             color: #777;
@@ -89,17 +82,90 @@
             cursor: pointer;
         }
         button:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Fancy Fullscreen Loading Screen Overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            transition: opacity 0.4s ease;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ff6600;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        #loading-subtext {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 80%;
+        }
+        .progress-container {
+            width: 280px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 12px;
+            margin-bottom: 10px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #ff6600;
+            transition: width 0.2s ease;
+        }
+        #progress-stats {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Loading Screen Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-text">Preparing Nectar AI Free</div>
+        <div id="loading-subtext">Loading backend configuration...</div>
+        
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="progress-stats">0%</div>
+    </div>
 
     <div class="header-container">
         <h2 id="app-title">Nectar AI Free</h2>
         <div id="token-stats">Context: 0 / 32,768 tokens</div>
     </div>
     <div class="sub-title">Super-fast client-side intelligence running right inside your browser via WebGPU.</div>
-
-    <div id="loading-status">Loading backend configuration & initializing WebLLM...</div>
 
     <div id="chat-box"></div>
 
@@ -116,7 +182,11 @@
         let backendConfig = null;
         const maxWindow = 32768; // Qwen2 token context limit
 
-        const statusDiv = document.getElementById("loading-status");
+        const loadingOverlay = document.getElementById("loading-overlay");
+        const loadingSubtext = document.getElementById("loading-subtext");
+        const progressBar = document.getElementById("progress-bar");
+        const progressStats = document.getElementById("progress-stats");
+        
         const tokenStats = document.getElementById("token-stats");
         const chatBox = document.getElementById("chat-box");
         const userInput = document.getElementById("user-input");
@@ -138,11 +208,16 @@
                     document.title = backendConfig.app_name;
                 }
 
-                statusDiv.innerText = `Initializing model (${backendConfig.model_selection})...`;
+                loadingSubtext.innerText = `Initializing model (${backendConfig.model_selection})...`;
 
-                // 2. Initialize WebLLM Engine using backend model spec
+                // 2. Initialize WebLLM Engine and update the visual progress bar
                 const initProgressCallback = (report) => {
-                    statusDiv.innerText = report.text;
+                    loadingSubtext.innerText = report.text;
+                    if (report.progress !== undefined) {
+                        const percent = Math.round(report.progress * 100);
+                        progressBar.style.width = percent + "%";
+                        progressStats.innerText = percent + "%";
+                    }
                 };
 
                 engine = await webllm.CreateMLCEngine(
@@ -150,13 +225,19 @@
                     { initProgressCallback: initProgressCallback }
                 );
 
-                statusDiv.innerText = `${backendConfig.app_name} is ready! (100% Local WebGPU)`;
+                // Hide the loading overlay smoothly
+                loadingOverlay.style.opacity = "0";
+                setTimeout(() => {
+                    loadingOverlay.style.display = "none";
+                }, 400);
+
                 userInput.disabled = false;
                 sendBtn.disabled = false;
 
             } catch (err) {
                 console.error(err);
-                statusDiv.innerText = "Initialization error. Ensure prompt-config.json is present and server is running.";
+                loadingSubtext.innerText = "Initialization error. Ensure prompt-config.json is present and server is running.";
+                progressStats.innerText = "Error";
             }
         }
 
