@@ -1,55 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forge AI - In-Browser Client-Side AI</title>
+    <title>Forge Kernel AI - In-Browser Client-Side AI</title>
     <style>
-        /* Dark Theme & McDonald's Soft Dark Green Base */
+        :root,
+        [data-theme="dark"] {
+            --bg: #121212;
+            --text: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --text-subtle: #bbb;
+            --accent: #1e5c3e;
+            --accent-hover: #174a31;
+            --accent-light: #2b8c73;
+            --surface: #1e1e1e;
+            --surface-raised: #2a2a2a;
+            --border: #333;
+            --border-input: #444;
+            --placeholder: #777;
+            --user-msg-bg: #1e5c3e;
+            --user-msg-text: #fff;
+            --assistant-msg-bg: #2a2a2a;
+            --assistant-msg-text: #e0e0e0;
+            --btn-disabled-bg: #333;
+            --btn-disabled-text: #666;
+            --scrollbar-track: #1e1e1e;
+            --scrollbar-thumb: #444;
+            --scrollbar-thumb-hover: #555;
+            --shadow-inset: rgba(0, 0, 0, 0.5);
+            --settings-shadow: rgba(0, 0, 0, 0.45);
+        }
+
+        [data-theme="light"] {
+            --bg: #f5f7f5;
+            --text: #1a1a1a;
+            --text-muted: #5a5a5a;
+            --text-subtle: #666;
+            --accent: #1e5c3e;
+            --accent-hover: #174a31;
+            --accent-light: #2b8c73;
+            --surface: #ffffff;
+            --surface-raised: #eef2ee;
+            --border: #d0d8d0;
+            --border-input: #b8c4b8;
+            --placeholder: #999;
+            --user-msg-bg: #1e5c3e;
+            --user-msg-text: #fff;
+            --assistant-msg-bg: #eef2ee;
+            --assistant-msg-text: #1a1a1a;
+            --btn-disabled-bg: #d0d8d0;
+            --btn-disabled-text: #888;
+            --scrollbar-track: #eef2ee;
+            --scrollbar-thumb: #b8c4b8;
+            --scrollbar-thumb-hover: #9aab9a;
+            --shadow-inset: rgba(0, 0, 0, 0.06);
+            --settings-shadow: rgba(0, 0, 0, 0.12);
+        }
+
         body {
             font-family: system-ui, -apple-system, sans-serif;
             max-width: 650px;
             margin: 40px auto;
-            padding: 0 20px;
-            color: #e0e0e0;
-            background: #121212; /* Deep black background */
+            padding: 0 20px 80px;
+            color: var(--text);
+            background: var(--bg);
+            transition: background 0.25s ease, color 0.25s ease;
         }
-        
+
         .header-container {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
             margin-bottom: 5px;
         }
-        
-        /* The specific soft dark green (like a muted forest green) */
-        h2 { margin: 0; color: #1e5c3e; } 
-        
+
+        h2 { margin: 0; color: var(--accent); }
+
         .sub-title {
             font-size: 13px;
-            color: #a0a0a0;
+            color: var(--text-muted);
             margin-bottom: 10px;
         }
-        
-        #upgrade-status {
+
+        #model-status {
             font-size: 12px;
-            color: #1e5c3e;
+            color: var(--accent);
             margin-bottom: 15px;
             font-weight: bold;
             display: none;
         }
-        
+
         #token-stats {
             font-size: 12px;
-            color: #bbb;
-            background: #2a2a2a;
+            color: var(--text-subtle);
+            background: var(--surface-raised);
             padding: 4px 8px;
             border-radius: 4px;
         }
-        
+
         #chat-box {
-            border: 1px solid #333;
-            background: #1e1e1e;
+            border: 1px solid var(--border);
+            background: var(--surface);
             height: 380px;
             overflow-y: auto;
             padding: 15px;
@@ -58,9 +110,9 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            box-shadow: inset 0 1px 3px var(--shadow-inset);
         }
-        
+
         .message {
             padding: 10px 14px;
             border-radius: 8px;
@@ -69,47 +121,47 @@
             word-break: break-word;
             font-size: 14px;
         }
-        
-        .user { 
-            background: #1e5c3e; /* Soft dark green */
-            color: #fff; 
-            align-self: flex-end; 
+
+        .user {
+            background: var(--user-msg-bg);
+            color: var(--user-msg-text);
+            align-self: flex-end;
         }
-        
-        .assistant { 
-            background: #2a2a2a; 
-            color: #e0e0e0; 
-            align-self: flex-start; 
-            border: 1px solid #333;
+
+        .assistant {
+            background: var(--assistant-msg-bg);
+            color: var(--assistant-msg-text);
+            align-self: flex-start;
+            border: 1px solid var(--border);
         }
-        
+
         .input-group {
             display: flex;
             gap: 10px;
         }
-        
+
         input[type="text"] {
             flex: 1;
             padding: 12px;
-            border: 1px solid #444;
-            background: #1e1e1e;
-            color: #fff;
+            border: 1px solid var(--border-input);
+            background: var(--surface);
+            color: var(--text);
             border-radius: 6px;
             font-size: 15px;
             outline: none;
         }
-        
+
         input[type="text"]::placeholder {
-            color: #777;
+            color: var(--placeholder);
         }
-        
+
         input[type="text"]:focus {
-            border-color: #1e5c3e;
+            border-color: var(--accent);
         }
-        
+
         button {
             padding: 0 20px;
-            background: #1e5c3e;
+            background: var(--accent);
             color: white;
             border: none;
             border-radius: 6px;
@@ -118,25 +170,24 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        
+
         button:hover:not(:disabled) {
-            background: #174a31;
-        }
-        
-        button:disabled { 
-            background: #333; 
-            color: #666;
-            cursor: not-allowed; 
+            background: var(--accent-hover);
         }
 
-        /* Fancy Fullscreen Loading Screen Overlay */
+        button:disabled {
+            background: var(--btn-disabled-bg);
+            color: var(--btn-disabled-text);
+            cursor: not-allowed;
+        }
+
         #loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #121212;
+            background: var(--bg);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -144,93 +195,192 @@
             z-index: 999;
             transition: opacity 0.4s ease;
         }
-        
+
         .spinner {
             width: 44px;
             height: 44px;
-            border: 4px solid #333;
-            border-top: 4px solid #1e5c3e;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 15px;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         #loading-text {
             font-size: 16px;
             font-weight: 600;
-            color: #e0e0e0;
+            color: var(--text);
             margin-bottom: 5px;
             text-align: center;
         }
-        
+
         #loading-subtext {
             font-size: 13px;
-            color: #a0a0a0;
+            color: var(--text-muted);
             margin-bottom: 20px;
             text-align: center;
             max-width: 80%;
         }
-        
+
         .progress-container {
             width: 280px;
-            background: #2a2a2a;
+            background: var(--surface-raised);
             border-radius: 10px;
             overflow: hidden;
             height: 12px;
             margin-bottom: 10px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            box-shadow: inset 0 1px 3px var(--shadow-inset);
         }
-        
-        /* Blue-Green Fade Moving Effect for Progress Bar */
+
         #progress-bar {
             width: 0%;
             height: 100%;
-            background: linear-gradient(90deg, #1e5c3e, #2b8c73, #1e5c3e);
+            background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--accent));
             background-size: 200% 100%;
             animation: gradientMove 2s linear infinite;
             transition: width 0.2s ease;
         }
-        
+
         @keyframes gradientMove {
             0% { background-position: 100% 0; }
             100% { background-position: -100% 0; }
         }
-        
+
         #progress-stats {
             font-size: 13px;
             font-weight: 600;
-            color: #888;
+            color: var(--text-muted);
         }
-        
-        /* Custom scrollbar for chat box to match dark theme */
+
         ::-webkit-scrollbar {
             width: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #1e1e1e;
+            background: var(--scrollbar-track);
         }
         ::-webkit-scrollbar-thumb {
-            background: #444;
+            background: var(--scrollbar-thumb);
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background: var(--scrollbar-thumb-hover);
+        }
+
+        /* Settings panel — bottom left */
+        #settings-root {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+
+        #settings-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px var(--settings-shadow);
+        }
+
+        #settings-toggle svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        #settings-panel {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 0;
+            width: 260px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 4px 20px var(--settings-shadow);
+        }
+
+        #settings-panel.open {
+            display: block;
+        }
+
+        .settings-section {
+            margin-bottom: 16px;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .settings-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .settings-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--surface-raised);
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .settings-option:hover {
+            border-color: var(--accent);
+        }
+
+        .settings-option input {
+            accent-color: var(--accent);
+            margin: 0;
+        }
+
+        .settings-option.active {
+            border-color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 12%, var(--surface-raised));
+        }
+
+        .settings-option .option-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: auto;
         }
     </style>
 </head>
 <body>
 
-    <!-- Loading Screen Overlay -->
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div id="loading-text">Preparing Forge AI</div>
-        <div id="loading-subtext">Loading fast startup model...</div>
-        
+        <div id="loading-text">Preparing Forge Kernel AI</div>
+        <div id="loading-subtext">Loading model...</div>
         <div class="progress-container">
             <div id="progress-bar"></div>
         </div>
@@ -238,122 +388,230 @@
     </div>
 
     <div class="header-container">
-        <h2 id="app-title">Forge AI</h2>
-        <div id="token-stats">Context: 0 / 32,768 tokens</div>
+        <h2 id="app-title">Forge Kernel AI</h2>
+        <div id="token-stats">Context: 0 / 4,096 tokens</div>
     </div>
     <div class="sub-title">Super-fast client-side intelligence running right inside your browser via WebGPU.</div>
-    
-    <!-- New upgrade status text -->
-    <div id="upgrade-status"></div>
+
+    <div id="model-status"></div>
 
     <div id="chat-box"></div>
 
     <div class="input-group">
-        <input type="text" id="user-input" placeholder="Ask Forge AI anything..." disabled>
+        <input type="text" id="user-input" placeholder="Ask Forge Kernel AI anything..." disabled>
         <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
     </div>
 
-    <!-- Load WebLLM via ESM CDN -->
+    <div id="settings-root">
+        <button id="settings-toggle" type="button" aria-expanded="false" aria-controls="settings-panel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            Settings
+        </button>
+        <div id="settings-panel" role="dialog" aria-label="Settings">
+            <div class="settings-section">
+                <span class="settings-label">Theme</span>
+                <div class="settings-options" id="theme-options">
+                    <label class="settings-option" data-theme-value="light">
+                        <input type="radio" name="theme" value="light">
+                        Light
+                    </label>
+                    <label class="settings-option" data-theme-value="dark">
+                        <input type="radio" name="theme" value="dark">
+                        Dark
+                    </label>
+                </div>
+            </div>
+            <div class="settings-section">
+                <span class="settings-label">AI Model</span>
+                <div class="settings-options" id="model-options">
+                    <label class="settings-option" data-model-value="lite">
+                        <input type="radio" name="model" value="lite">
+                        Fast Lite
+                        <span class="option-desc">Qwen3-0.6B</span>
+                    </label>
+                    <label class="settings-option" data-model-value="fast">
+                        <input type="radio" name="model" value="fast">
+                        Fast
+                        <span class="option-desc">Qwen3-1.7B</span>
+                    </label>
+                    <label class="settings-option" data-model-value="smart">
+                        <input type="radio" name="model" value="smart">
+                        Smart
+                        <span class="option-desc">Qwen3-4B</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
+        const MODELS = {
+            lite: { id: "Qwen3-0.6B-q4f16_1-MLC", label: "Fast Lite (Qwen3-0.6B)" },
+            fast: { id: "Qwen3-1.7B-q4f16_1-MLC", label: "Fast (Qwen3-1.7B)" },
+            smart: { id: "Qwen3-4B-q4f16_1-MLC", label: "Smart (Qwen3-4B)" }
+        };
+
+        const STORAGE_KEYS = { theme: "forge-kernel-theme", model: "forge-kernel-model" };
+        const maxWindow = 4096;
+
         let engine = null;
         let backendConfig = null;
-        const maxWindow = 32768;
+        let currentModelKey = localStorage.getItem(STORAGE_KEYS.model) || "fast";
+        let isSwitchingModel = false;
 
         const loadingOverlay = document.getElementById("loading-overlay");
+        const loadingText = document.getElementById("loading-text");
         const loadingSubtext = document.getElementById("loading-subtext");
         const progressBar = document.getElementById("progress-bar");
         const progressStats = document.getElementById("progress-stats");
-        
-        const upgradeStatus = document.getElementById("upgrade-status");
+        const modelStatus = document.getElementById("model-status");
         const tokenStats = document.getElementById("token-stats");
         const chatBox = document.getElementById("chat-box");
         const userInput = document.getElementById("user-input");
         const sendBtn = document.getElementById("send-btn");
-        const appTitle = document.getElementById("app-title");
+        const settingsToggle = document.getElementById("settings-toggle");
+        const settingsPanel = document.getElementById("settings-panel");
 
         let conversationHistory = [];
 
+        function applyTheme(theme) {
+            document.documentElement.setAttribute("data-theme", theme);
+            localStorage.setItem(STORAGE_KEYS.theme, theme);
+            document.querySelectorAll("#theme-options .settings-option").forEach(el => {
+                const active = el.dataset.themeValue === theme;
+                el.classList.toggle("active", active);
+                el.querySelector("input").checked = active;
+            });
+        }
+
+        function applyModelSelectionUI(modelKey) {
+            document.querySelectorAll("#model-options .settings-option").forEach(el => {
+                const active = el.dataset.modelValue === modelKey;
+                el.classList.toggle("active", active);
+                el.querySelector("input").checked = active;
+            });
+        }
+
+        function showLoadingOverlay(message) {
+            loadingText.innerText = "Preparing Forge Kernel AI";
+            loadingSubtext.innerText = message;
+            progressBar.style.width = "0%";
+            progressStats.innerText = "0%";
+            loadingOverlay.style.display = "flex";
+            loadingOverlay.style.opacity = "1";
+        }
+
+        function hideLoadingOverlay() {
+            loadingOverlay.style.opacity = "0";
+            setTimeout(() => {
+                loadingOverlay.style.display = "none";
+            }, 400);
+        }
+
+        function showModelStatus(text, persist = false) {
+            modelStatus.style.display = "block";
+            modelStatus.style.color = "var(--accent)";
+            modelStatus.innerText = text;
+            if (!persist) {
+                setTimeout(() => {
+                    modelStatus.style.display = "none";
+                }, 4000);
+            }
+        }
+
+        async function loadEngine(modelKey, showOverlay = true) {
+            const model = MODELS[modelKey];
+            if (!model) return;
+
+            if (showOverlay) {
+                showLoadingOverlay(`Loading ${model.label}...`);
+                userInput.disabled = true;
+                sendBtn.disabled = true;
+            }
+
+            const initProgressCallback = (report) => {
+                loadingSubtext.innerText = report.text;
+                if (report.progress !== undefined) {
+                    const percent = Math.round(report.progress * 100);
+                    progressBar.style.width = percent + "%";
+                    progressStats.innerText = percent + "%";
+                }
+            };
+
+            engine = await webllm.CreateMLCEngine(model.id, { initProgressCallback });
+            currentModelKey = modelKey;
+            localStorage.setItem(STORAGE_KEYS.model, modelKey);
+            applyModelSelectionUI(modelKey);
+
+            if (showOverlay) hideLoadingOverlay();
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+        }
+
+        async function switchModel(modelKey) {
+            if (modelKey === currentModelKey || isSwitchingModel) return;
+            isSwitchingModel = true;
+            settingsPanel.classList.remove("open");
+
+            try {
+                showModelStatus(`Switching to ${MODELS[modelKey].label}...`, true);
+                await loadEngine(modelKey, true);
+                conversationHistory = [];
+                chatBox.innerHTML = "";
+                tokenStats.innerText = `Context: 0 / ${maxWindow.toLocaleString()} tokens`;
+                modelStatus.style.color = "var(--accent-light)";
+                showModelStatus(`Now using ${MODELS[modelKey].label}.`);
+            } catch (err) {
+                console.error(err);
+                showModelStatus("Failed to switch model.", true);
+            } finally {
+                isSwitchingModel = false;
+            }
+        }
+
+        function initSettings() {
+            const savedTheme = localStorage.getItem(STORAGE_KEYS.theme) || "dark";
+            applyTheme(savedTheme);
+            applyModelSelectionUI(currentModelKey);
+
+            settingsToggle.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const open = settingsPanel.classList.toggle("open");
+                settingsToggle.setAttribute("aria-expanded", open);
+            });
+
+            document.addEventListener("click", (e) => {
+                if (!document.getElementById("settings-root").contains(e.target)) {
+                    settingsPanel.classList.remove("open");
+                    settingsToggle.setAttribute("aria-expanded", "false");
+                }
+            });
+
+            document.querySelectorAll("#theme-options .settings-option").forEach(el => {
+                el.addEventListener("click", () => applyTheme(el.dataset.themeValue));
+            });
+
+            document.querySelectorAll("#model-options .settings-option").forEach(el => {
+                el.addEventListener("click", () => switchModel(el.dataset.modelValue));
+            });
+        }
+
         async function initApp() {
             try {
-                // 1. Fetch backend configuration
-                const response = await fetch('./prompt-config.json');
+                document.title = "Forge Kernel AI";
+
+                const response = await fetch("./prompt-config.json");
                 if (!response.ok) throw new Error("Failed to load prompt-config.json");
                 backendConfig = await response.json();
 
-                // Override name to Forge AI even if config says Nectar
-                appTitle.innerText = "Forge AI";
-                document.title = "Forge AI";
-
-                // 2. Load the FAST model first
-                const initProgressCallback = (report) => {
-                    loadingSubtext.innerText = report.text;
-                    if (report.progress !== undefined) {
-                        const percent = Math.round(report.progress * 100);
-                        progressBar.style.width = percent + "%";
-                        progressStats.innerText = percent + "%";
-                    }
-                };
-
-                engine = await webllm.CreateMLCEngine(
-                    backendConfig.model_selection, 
-                    { initProgressCallback: initProgressCallback }
-                );
-
-                // Hide loading overlay
-                loadingOverlay.style.opacity = "0";
-                setTimeout(() => {
-                    loadingOverlay.style.display = "none";
-                }, 400);
-
-                // Enable chat
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-
-                // 3. Start background download of the SMARTER model
-                loadBiggerModel();
-
+                initSettings();
+                await loadEngine(currentModelKey, true);
             } catch (err) {
                 console.error(err);
                 loadingSubtext.innerText = "Initialization error.";
                 progressStats.innerText = "Error";
-            }
-        }
-
-        // New function to load the bigger model silently
-        async function loadBiggerModel() {
-            upgradeStatus.style.display = "block";
-            
-            const upgradeProgressCallback = (report) => {
-                // Clean up the text so it's simple and easy to read
-                const shortText = report.text.split("] ")[1] || report.text;
-                upgradeStatus.innerText = "Downloading smarter AI in background: " + shortText;
-            };
-
-            try {
-                // You can change this to a larger Qwen model when available
-                const biggerModelName = "Qwen2-1.5B-Instruct-q4f16_1-MLC"; 
-                
-                const biggerEngine = await webllm.CreateMLCEngine(
-                    biggerModelName, 
-                    { initProgressCallback: upgradeProgressCallback }
-                );
-
-                // Swap the engine to the smarter one seamlessly
-                engine = biggerEngine;
-                
-                upgradeStatus.style.color = "#2b8c73"; // Use the bluish-green for success
-                upgradeStatus.innerText = "✨ Upgrade complete! You are now chatting with the smarter AI.";
-                
-                // Hide the message after 5 seconds
-                setTimeout(() => {
-                    upgradeStatus.style.display = "none";
-                }, 5000);
-
-            } catch (err) {
-                console.error("Background upgrade failed:", err);
-                upgradeStatus.style.display = "none";
             }
         }
 
@@ -376,6 +634,7 @@
             ];
 
             const assistantMsgDiv = appendMessage("", "assistant");
+            const modelId = MODELS[currentModelKey].id;
 
             try {
                 const replyStream = await engine.chat.completions.create({
@@ -383,7 +642,10 @@
                     temperature: backendConfig.temperature,
                     max_tokens: backendConfig.max_output_tokens,
                     stream: true,
-                    stream_options: { include_usage: true }
+                    stream_options: { include_usage: true },
+                    extra_body: modelId.startsWith("Qwen3")
+                        ? { enable_thinking: false }
+                        : undefined
                 });
 
                 let fullReply = "";
@@ -407,7 +669,6 @@
                     const pct = ((used / maxWindow) * 100).toFixed(1);
                     tokenStats.innerText = `Context: ${used.toLocaleString()} / ${maxWindow.toLocaleString()} tokens (${pct}%)`;
                 }
-
             } catch (err) {
                 console.error(err);
                 assistantMsgDiv.innerText = "[Generation error]";
@@ -416,7 +677,7 @@
                 sendBtn.disabled = false;
                 userInput.focus();
             }
-        }
+        };
 
         function appendMessage(text, sender) {
             const msgDiv = document.createElement("div");
